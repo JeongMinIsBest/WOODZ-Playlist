@@ -15,6 +15,8 @@ const state = {
     mood: "all",
     energy: "all",
   },
+  artworkCache: new Map(),
+  artworkRequests: new Map(),
 };
 
 const elements = {
@@ -217,6 +219,119 @@ function buildYoutubeMusicUrl(song) {
   return `https://music.youtube.com/search?q=${encodeURIComponent(query)}`;
 }
 
+function normalizeText(value) {
+  return (value || "")
+    .toLowerCase()
+    .replaceAll("&", "and")
+    .replace(/[^a-z0-9가-힣]/g, "");
+}
+
+function buildArtworkLookupUrl(song) {
+  const url = new URL("https://itunes.apple.com/search");
+  url.searchParams.set("term", `${song.title} ${song.primaryRelease} WOODZ`);
+  url.searchParams.set("media", "music");
+  url.searchParams.set("entity", "song");
+  url.searchParams.set("country", "KR");
+  url.searchParams.set("limit", "10");
+  return url.toString();
+}
+
+function scoreArtworkResult(song, result) {
+  const title = normalizeText(song.title);
+  const release = normalizeText(song.primaryRelease);
+  const trackName = normalizeText(result.trackName);
+  const collectionName = normalizeText(result.collectionName);
+  const artistName = normalizeText(result.artistName);
+
+  let score = 0;
+  if (trackName === title) score += 7;
+  if (trackName.includes(title) || title.includes(trackName)) score += 3;
+  if (collectionName === release) score += 5;
+  if (collectionName.includes(release) || release.includes(collectionName)) score += 2;
+  if (artistName.includes("woodz")) score += 5;
+  if (artistName.includes("조승연") || artistName.includes("choseungyoun")) score += 4;
+  return score;
+}
+
+function selectArtwork(song, results) {
+  if (!results?.length) {
+    return null;
+  }
+
+  const best = [...results]
+    .map((result) => ({ result, score: scoreArtworkResult(song, result) }))
+    .sort((left, right) => right.score - left.score)[0];
+
+  if (!best || best.score < 5 || !best.result.artworkUrl100) {
+    return null;
+  }
+
+  return best.result.artworkUrl100.replace("100x100bb", "600x600bb");
+}
+
+function getArtworkUrl(song) {
+  return state.artworkCache.get(song.id) || null;
+}
+
+async function fetchArtwork(song) {
+  if (state.artworkCache.has(song.id)) {
+    return state.artworkCache.get(song.id);
+  }
+
+  if (state.artworkRequests.has(song.id)) {
+    return state.artworkRequests.get(song.id);
+  }
+
+  const request = fetch(buildArtworkLookupUrl(song))
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("artwork lookup failed");
+      }
+      return response.json();
+    })
+    .then((data) => {
+      const artworkUrl = selectArtwork(song, data.results);
+      state.artworkCache.set(song.id, artworkUrl);
+      state.artworkRequests.delete(song.id);
+      renderAll();
+      return artworkUrl;
+    })
+    .catch(() => {
+      state.artworkCache.set(song.id, null);
+      state.artworkRequests.delete(song.id);
+      renderAll();
+      return null;
+    });
+
+  state.artworkRequests.set(song.id, request);
+  return request;
+}
+
+function prefetchArtwork(songs) {
+  songs.forEach((song) => {
+    if (!state.artworkCache.has(song.id) && !state.artworkRequests.has(song.id)) {
+      fetchArtwork(song);
+    }
+  });
+}
+
+function renderArtwork(song) {
+  const artworkUrl = getArtworkUrl(song);
+  if (artworkUrl) {
+    return `
+      <div class="artwork-frame">
+        <img class="artwork-image" src="${artworkUrl}" alt="${song.title} album cover" loading="lazy" />
+      </div>
+    `;
+  }
+
+  return `
+    <div class="artwork-frame artwork-placeholder">
+      <span>${song.primaryRelease}</span>
+    </div>
+  `;
+}
+
 function renderWeather() {
   elements.weatherStatus.textContent = state.weather.locationLabel;
   elements.weatherSummary.innerHTML = `
@@ -232,6 +347,7 @@ function renderWeather() {
 
 function renderRecommendations() {
   const recommendations = recommendSongs().slice(0, 8);
+  prefetchArtwork(recommendations.map(({ song }) => song));
   elements.recommendationCount.textContent = `${recommendations.length}곡`;
   elements.recommendations.innerHTML = "";
 
@@ -248,7 +364,10 @@ function renderRecommendations() {
     const card = document.createElement("article");
     card.className = "recommendation-card";
     card.innerHTML = `
-      <div class="recommendation-rank">#${index + 1}</div>
+      <div class="recommendation-side">
+        <div class="recommendation-rank">#${index + 1}</div>
+        ${renderArtwork(song)}
+      </div>
       <div class="recommendation-body">
         <div class="recommendation-topline">
           <h3>${song.title}</h3>
@@ -270,6 +389,7 @@ function renderRecommendations() {
 
 function renderCatalog() {
   const filtered = SONG_CATALOG.filter(applyFilters);
+  prefetchArtwork(filtered.slice(0, 24));
   elements.catalogCount.textContent = `${filtered.length}곡`;
   elements.catalog.innerHTML = "";
 
@@ -278,6 +398,7 @@ function renderCatalog() {
     const card = document.createElement("article");
     card.className = "catalog-card";
     card.innerHTML = `
+      ${renderArtwork(song)}
       <div class="catalog-header">
         <div>
           <h3>${song.title}</h3>

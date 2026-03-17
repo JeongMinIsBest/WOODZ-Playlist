@@ -243,8 +243,14 @@ select {
 
 .recommendation-card {
   display: grid;
-  grid-template-columns: 70px 1fr;
+  grid-template-columns: 140px 1fr;
   gap: 16px;
+}
+
+.recommendation-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .recommendation-rank {
@@ -256,6 +262,32 @@ select {
   background: linear-gradient(160deg, rgba(188, 91, 54, 0.14), rgba(188, 91, 54, 0.28));
   color: var(--accent-deep);
   font-weight: 700;
+}
+
+.artwork-frame {
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 22px;
+  border: 1px solid rgba(72, 44, 22, 0.08);
+  background: linear-gradient(145deg, rgba(244, 191, 164, 0.3), rgba(143, 189, 206, 0.26));
+}
+
+.artwork-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.artwork-placeholder {
+  display: grid;
+  place-items: center;
+  padding: 14px;
+  color: var(--accent-deep);
+  text-align: center;
+  font-size: 0.9rem;
+  line-height: 1.5;
 }
 
 .recommendation-topline,
@@ -310,6 +342,10 @@ select {
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
+.catalog-card .artwork-frame {
+  margin-bottom: 16px;
+}
+
 .empty-state {
   padding: 24px;
   border-radius: 22px;
@@ -338,5 +374,14 @@ select {
   .recommendation-card {
     grid-template-columns: 1fr;
     flex-direction: column;
+  }
+
+  .recommendation-side {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .recommendation-side .artwork-frame {
+    width: 110px;
   }
 }
