@@ -1,0 +1,9 @@
+{
+  "name": "WOODZ Weather Recommender",
+  "short_name": "WOODZ Weather",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f3efe7",
+  "theme_color": "#bc5b36",
+  "description": "WOODZ 전곡을 날씨 태그로 추천해주는 웹앱"
+}

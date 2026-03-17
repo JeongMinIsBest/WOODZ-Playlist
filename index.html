@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="WOODZ 전곡 카탈로그를 태깅하고 오늘의 날씨로 추천해주는 웹앱"
+    />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="stylesheet" href="./styles.css" />
+    <title>WOODZ Weather Recommender</title>
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <p class="eyebrow">WEATHER X WOODZ</p>
+        <h1>오늘 날씨에 어울리는 WOODZ 플레이리스트</h1>
+        <p class="hero-copy">
+          WOODZ의 솔로 곡 카탈로그를 릴리즈별로 정리하고, 분위기와 날씨 태그를 입혀서
+          지금 날씨에 가장 잘 맞는 곡을 추천합니다.
+        </p>
+        <div class="hero-actions">
+          <button id="use-location" class="primary-button">내 위치로 날씨 가져오기</button>
+          <form id="city-form" class="city-form">
+            <input
+              id="city-input"
+              name="city"
+              type="text"
+              placeholder="도시 입력 예: Seoul, Tokyo, Paris"
+              autocomplete="off"
+            />
+            <button type="submit" class="ghost-button">도시 검색</button>
+          </form>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="panel weather-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-label">Today</p>
+              <h2>현재 날씨</h2>
+            </div>
+            <span id="weather-status" class="status-pill">초기화 중</span>
+          </div>
+          <div id="weather-summary" class="weather-summary"></div>
+          <div id="weather-tags" class="chip-row"></div>
+        </section>
+
+        <section class="panel filter-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-label">Filters</p>
+              <h2>카테고리 태그</h2>
+            </div>
+          </div>
+          <div class="filters">
+            <label>
+              <span>곡 검색</span>
+              <input id="search-input" type="text" placeholder="곡명, 릴리즈명, 태그" />
+            </label>
+            <label>
+              <span>대표 카테고리</span>
+              <select id="category-select"></select>
+            </label>
+            <label>
+              <span>무드 태그</span>
+              <select id="mood-select"></select>
+            </label>
+            <label>
+              <span>에너지</span>
+              <select id="energy-select">
+                <option value="all">전체</option>
+                <option value="low">잔잔함</option>
+                <option value="mid">중간</option>
+                <option value="high">강함</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel recommendation-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-label">Playlist</p>
+              <h2>오늘의 추천</h2>
+            </div>
+            <span id="recommendation-count" class="status-pill">0곡</span>
+          </div>
+          <div id="recommendations" class="recommendation-list"></div>
+        </section>
+
+        <section class="panel catalog-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-label">Catalog</p>
+              <h2>WOODZ 전체 곡 카탈로그</h2>
+            </div>
+            <span id="catalog-count" class="status-pill">0곡</span>
+          </div>
+          <div id="catalog" class="catalog-grid"></div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
