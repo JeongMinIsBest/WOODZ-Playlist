@@ -17,6 +17,8 @@ const state = {
   },
   artworkCache: new Map(),
   artworkRequests: new Map(),
+  albumArtworkCache: new Map(),
+  albumArtworkRequests: new Map(),
 };
 
 const elements = {
@@ -226,17 +228,25 @@ function normalizeText(value) {
     .replace(/[^a-z0-9가-힣]/g, "");
 }
 
-function buildArtworkLookupUrl(song) {
+const MANUAL_ARTWORK_HINTS = {
+  waiting: ["WAITING WOODZ", "ONLY LOVERS LEFT WOODZ"],
+  "kiss of fire": ["Kiss of Fire WOODZ", "ONLY LOVERS LEFT WOODZ"],
+  drowning: ["Drowning WOODZ", "OO-LI WOODZ"],
+  abyss: ["ABYSS WOODZ", "OO-LI WOODZ"],
+  amnesia: ["AMNESIA WOODZ"],
+};
+
+function buildArtworkLookupUrl(term, entity = "song", limit = 10) {
   const url = new URL("https://itunes.apple.com/search");
-  url.searchParams.set("term", `${song.title} ${song.primaryRelease} WOODZ`);
+  url.searchParams.set("term", term);
   url.searchParams.set("media", "music");
-  url.searchParams.set("entity", "song");
+  url.searchParams.set("entity", entity);
   url.searchParams.set("country", "KR");
-  url.searchParams.set("limit", "10");
+  url.searchParams.set("limit", String(limit));
   return url.toString();
 }
 
-function scoreArtworkResult(song, result) {
+function scoreArtworkResult(song, result, preferAlbum = false) {
   const title = normalizeText(song.title);
   const release = normalizeText(song.primaryRelease);
   const trackName = normalizeText(result.trackName);
@@ -250,16 +260,18 @@ function scoreArtworkResult(song, result) {
   if (collectionName.includes(release) || release.includes(collectionName)) score += 2;
   if (artistName.includes("woodz")) score += 5;
   if (artistName.includes("조승연") || artistName.includes("choseungyoun")) score += 4;
+  if (preferAlbum && collectionName === release) score += 4;
+  if (result.wrapperType === "collection") score += 2;
   return score;
 }
 
-function selectArtwork(song, results) {
+function selectArtwork(song, results, preferAlbum = false) {
   if (!results?.length) {
     return null;
   }
 
   const best = [...results]
-    .map((result) => ({ result, score: scoreArtworkResult(song, result) }))
+    .map((result) => ({ result, score: scoreArtworkResult(song, result, preferAlbum) }))
     .sort((left, right) => right.score - left.score)[0];
 
   if (!best || best.score < 5 || !best.result.artworkUrl100) {
@@ -282,15 +294,8 @@ async function fetchArtwork(song) {
     return state.artworkRequests.get(song.id);
   }
 
-  const request = fetch(buildArtworkLookupUrl(song))
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error("artwork lookup failed");
-      }
-      return response.json();
-    })
-    .then((data) => {
-      const artworkUrl = selectArtwork(song, data.results);
+  const request = resolveArtwork(song)
+    .then((artworkUrl) => {
       state.artworkCache.set(song.id, artworkUrl);
       state.artworkRequests.delete(song.id);
       renderAll();
@@ -305,6 +310,80 @@ async function fetchArtwork(song) {
 
   state.artworkRequests.set(song.id, request);
   return request;
+}
+
+async function searchItunes(term, entity = "song", limit = 10) {
+  const response = await fetch(buildArtworkLookupUrl(term, entity, limit));
+  if (!response.ok) {
+    throw new Error("artwork lookup failed");
+  }
+  return response.json();
+}
+
+async function resolveAlbumArtwork(song) {
+  const albumKey = normalizeText(song.primaryRelease);
+  if (state.albumArtworkCache.has(albumKey)) {
+    return state.albumArtworkCache.get(albumKey);
+  }
+
+  if (state.albumArtworkRequests.has(albumKey)) {
+    return state.albumArtworkRequests.get(albumKey);
+  }
+
+  const request = (async () => {
+    const albumTerms = [
+      `${song.primaryRelease} WOODZ`,
+      `${song.primaryRelease} 조승연`,
+      song.primaryRelease,
+    ];
+
+    for (const term of albumTerms) {
+      const data = await searchItunes(term, "album", 8);
+      const artworkUrl = selectArtwork(song, data.results, true);
+      if (artworkUrl) {
+        state.albumArtworkCache.set(albumKey, artworkUrl);
+        state.albumArtworkRequests.delete(albumKey);
+        return artworkUrl;
+      }
+    }
+
+    state.albumArtworkCache.set(albumKey, null);
+    state.albumArtworkRequests.delete(albumKey);
+    return null;
+  })().catch(() => {
+    state.albumArtworkCache.set(albumKey, null);
+    state.albumArtworkRequests.delete(albumKey);
+    return null;
+  });
+
+  state.albumArtworkRequests.set(albumKey, request);
+  return request;
+}
+
+async function resolveArtwork(song) {
+  const albumArtwork = await resolveAlbumArtwork(song);
+  if (albumArtwork) {
+    return albumArtwork;
+  }
+
+  const manualTerms = MANUAL_ARTWORK_HINTS[song.title.toLowerCase()] || [];
+  const searchTerms = [
+    `${song.title} ${song.primaryRelease} WOODZ`,
+    `${song.title} WOODZ`,
+    `${song.title} 조승연`,
+    `${song.primaryRelease} WOODZ ${song.title}`,
+    ...manualTerms,
+  ];
+
+  for (const term of searchTerms) {
+    const data = await searchItunes(term, "song", 10);
+    const artworkUrl = selectArtwork(song, data.results);
+    if (artworkUrl) {
+      return artworkUrl;
+    }
+  }
+
+  return null;
 }
 
 function prefetchArtwork(songs) {
