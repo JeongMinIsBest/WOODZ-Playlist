@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: woodz-playlist-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_EMBEDDING_MODEL
+        value: text-embedding-3-small
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: DEFAULT_TIMEZONE
+        value: Asia/Seoul
+      - key: ALLOWED_ORIGINS
+        sync: false

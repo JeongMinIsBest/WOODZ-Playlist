@@ -1,13 +1,16 @@
 # WOODZ Weather Recommender
 
-`WOODZ`의 솔로 곡 카탈로그를 정리하고, 곡마다 카테고리와 무드/날씨 태그를 붙인 뒤 오늘의 날씨에 맞춰 추천해주는 정적 웹앱입니다.
+`WOODZ`의 솔로 곡 카탈로그를 정리하고, 현재 날씨, 시간대, 사용자 감정, 가사 의미 해석을 함께 반영해 플레이리스트를 추천하는 정적 웹앱입니다.
 
 ## 포함된 기능
 
 - `WOODZ` 솔로 디스코그래피 카탈로그
 - 릴리즈 기반 기본 태깅 + 곡별 세부 태그 오버라이드
 - 현재 위치 또는 도시 검색 기반 날씨 조회
-- 오늘 날씨에 따라 상위 추천 곡 계산
+- 현재 시간대 반영
+- 사용자 감정 선택과 자연어 입력 반영
+- 가사 의미 요약과 테마 기반 설명형 추천
+- 오늘의 플레이리스트 자동 생성
 - Apple iTunes Search API 기반 앨범 커버 조회
 - 모바일에서 설치 가능한 `PWA` 형태의 매니페스트
 
@@ -18,6 +21,7 @@
 - [`catalog.js`](/Users/jeongmin/Documents/Playground/catalog.js): 전체 곡 카탈로그와 태그 데이터
 - [`styles.css`](/Users/jeongmin/Documents/Playground/styles.css): UI 스타일
 - [`manifest.webmanifest`](/Users/jeongmin/Documents/Playground/manifest.webmanifest): PWA 설정
+- [`config.js`](/Users/jeongmin/Documents/Playground/config.js#L1): 배포 환경별 API 베이스 설정
 
 ## 로컬 실행
 
@@ -45,6 +49,70 @@ python3 -m http.server 4173
 
 카드는 `Apple iTunes Search API`를 사용해 먼저 `앨범명 + WOODZ` 기준으로 커버를 찾고, 실패하면 `곡명 + WOODZ`, `곡명 + 조승연` 같은 검색어로 재시도합니다. 그래도 일치 항목이 없으면 텍스트 플레이스홀더를 대신 표시합니다.
 
+## Backend MVP
+
+명세서의 다음 단계 구현을 위해 [`backend/main.py`](/Users/jeongmin/Documents/Playground/backend/main.py#L1) 기준 `FastAPI` 백엔드를 추가했습니다.
+
+- `POST /api/v1/recommendations`: 날씨, 시간, 사용자 감정, 자연어 입력을 받아 추천 생성
+- `GET /api/v1/songs`: 현재 곡 데이터셋 조회
+- `GET /health`: 헬스체크
+
+백엔드 구조:
+
+- [`backend/recommendation.py`](/Users/jeongmin/Documents/Playground/backend/recommendation.py#L1): 명세서 가중치 기반 추천 엔진
+- [`backend/embeddings.py`](/Users/jeongmin/Documents/Playground/backend/embeddings.py#L1): OpenAI 임베딩 연동
+- [`backend/weather.py`](/Users/jeongmin/Documents/Playground/backend/weather.py#L1): 날씨 API 해석
+- [`backend/repository.py`](/Users/jeongmin/Documents/Playground/backend/repository.py#L1): Supabase 또는 로컬 저장소 계층
+- [`backend/supabase/schema.sql`](/Users/jeongmin/Documents/Playground/backend/supabase/schema.sql#L1): Supabase 테이블/벡터 스키마
+
+실행 예시:
+
+```bash
+pip install -r backend/requirements.txt
+uvicorn backend.main:app --reload
+```
+
+프론트 연동:
+
+- 정적 프론트는 실행 시 같은 오리진의 `/api/v1`를 먼저 찾고,
+- 없으면 `http://127.0.0.1:8000/api/v1`, `http://localhost:8000/api/v1` 순서로 `FastAPI` 백엔드를 탐색합니다.
+- [`config.js`](/Users/jeongmin/Documents/Playground/config.js#L1)에서 `window.WOODZ_API_BASE = "https://your-render-service.onrender.com/api/v1"` 형태로 지정하면 배포된 프론트가 Render 백엔드를 직접 바라보게 할 수 있습니다.
+- 백엔드가 없거나 호출에 실패하면 기존 로컬 추천 엔진으로 자동 fallback 됩니다.
+
+환경 변수는 [`.env.example`](/Users/jeongmin/Documents/Playground/.env.example#L1)를 기준으로 설정할 수 있습니다.
+
+현재 구현 메모:
+
+- 실제 임베딩 API는 OpenAI `text-embedding-3-small`을 기본값으로 사용합니다.
+- OpenAI 임베딩은 텍스트를 수치 벡터로 바꿔 추천, 검색, 유사도 계산에 쓰도록 설계된 모델입니다. 공식 참고: [OpenAI Embeddings Guide](https://platform.openai.com/docs/guides/embeddings), [Embeddings API Reference](https://platform.openai.com/docs/api-reference/embeddings/create)
+- 저작권 이슈 때문에 전체 가사 원문 대신 `lyrics_summary`와 `lyrics_themes`를 현재 기본 입력으로 사용합니다.
+
+## Backend Deployment
+
+백엔드 배포 설정도 추가했습니다.
+
+- [`render.yaml`](/Users/jeongmin/Documents/Playground/render.yaml#L1): Render Blueprint 설정
+- [`railway.json`](/Users/jeongmin/Documents/Playground/railway.json#L1): Railway 배포 설정
+
+Render 기준:
+
+- 저장소 루트에서 `pip install -r backend/requirements.txt`
+- 시작 명령 `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
+- 헬스체크 경로 `/health`
+
+Railway 기준:
+
+- `RAILPACK` 빌더 사용
+- 시작 명령 `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
+- 헬스체크 경로 `/health`
+
+공식 참고:
+
+- [Render FastAPI Deploy Docs](https://render.com/docs/deploy-fastapi)
+- [Render Blueprint Spec](https://render.com/docs/blueprint-spec)
+- [Railway FastAPI Guide](https://docs.railway.com/guides/fastapi)
+- [Railway Build Configuration](https://docs.railway.com/reference/config-as-code)
+
 ## 날씨 추천 방식
 
 앱은 Open-Meteo의 현재 날씨 정보를 가져와 다음 태그로 변환합니다.
@@ -53,7 +121,16 @@ python3 -m http.server 4173
 - `cold`, `mild`, `hot`
 - `day`, `night`
 
-곡마다 저장된 `weatherTags`, `moods`, `settings`, `energy`와 현재 날씨 태그를 비교해서 점수를 계산하고 상위 곡을 추천합니다.
+곡마다 저장된 `weatherTags`, `emotionTags`, `timeTags`, `lyricsThemes`, `lyricsSummary`, `energy`와 현재 날씨/시간/사용자 입력을 비교해 점수를 계산합니다.
+
+## MVP 추천 점수
+
+앱은 아래 가중치를 기준으로 추천 점수를 계산합니다.
+
+- `0.35` weather score
+- `0.25` mood score
+- `0.20` time score
+- `0.20` lyrics similarity
 
 ## 참고
 
