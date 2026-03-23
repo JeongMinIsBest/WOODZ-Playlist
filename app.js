@@ -35,6 +35,8 @@ const state = {
     temperature: null,
     code: null,
     isDay: true,
+    timezone: "Asia/Seoul",
+    currentTime: null,
   },
   filters: {
     search: "",
@@ -174,8 +176,7 @@ function deriveWeatherMood(tags) {
 }
 
 function getCurrentTimeBucket() {
-  const now = new Date();
-  const hour = now.getHours();
+  const hour = state.weather.currentTime?.hour ?? new Date().getHours();
   if (hour < 6) return "night";
   if (hour < 12) return "morning";
   if (hour < 18) return "day";
@@ -184,12 +185,55 @@ function getCurrentTimeBucket() {
 }
 
 function getCurrentTimeLabel() {
-  const now = new Date();
-  return now.toLocaleTimeString("ko-KR", {
+  return state.weather.currentTime?.label || new Date().toLocaleTimeString("ko-KR", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
   });
+}
+
+function toLocalTimeState(dateTimeText, timezone) {
+  if (typeof dateTimeText === "string") {
+    const [datePart = "", timePart = ""] = dateTimeText.split("T");
+    const [hourText = "0", minuteText = "0"] = timePart.split(":");
+    const hour = Number.parseInt(hourText, 10);
+    const minute = Number.parseInt(minuteText, 10);
+
+    if (!Number.isNaN(hour) && !Number.isNaN(minute)) {
+      return {
+        label: `${hourText.padStart(2, "0")}:${minuteText.padStart(2, "0")}`,
+        hour,
+        minute,
+        date: datePart,
+        timezone: timezone || "Asia/Seoul",
+      };
+    }
+  }
+
+  const now = new Date();
+  return {
+    label: now.toLocaleTimeString("ko-KR", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      ...(timezone ? { timeZone: timezone } : {}),
+    }),
+    hour: Number(
+      now.toLocaleString("en-US", {
+        hour: "2-digit",
+        hour12: false,
+        ...(timezone ? { timeZone: timezone } : {}),
+      })
+    ),
+    minute: Number(
+      now.toLocaleString("en-US", {
+        minute: "2-digit",
+        ...(timezone ? { timeZone: timezone } : {}),
+      })
+    ),
+    date: now.toLocaleDateString("sv-SE", timezone ? { timeZone: timezone } : {}),
+    timezone: timezone || "Asia/Seoul",
+  };
 }
 
 function deriveWeatherTags(current) {
@@ -223,9 +267,10 @@ function deriveWeatherTags(current) {
   return [...new Set(tags)];
 }
 
-function toWeatherState(locationLabel, current) {
+function toWeatherState(locationLabel, current, timezone) {
   const tags = deriveWeatherTags(current);
   const timeLabel = current.is_day ? "낮" : "밤";
+  const currentTime = toLocalTimeState(current.time, timezone);
   const summary = `${locationLabel} · ${weatherCodeToLabel(current.weather_code)} · ${Math.round(
     current.temperature_2m
   )}°C · ${timeLabel}`;
@@ -237,6 +282,8 @@ function toWeatherState(locationLabel, current) {
     temperature: current.temperature_2m,
     code: current.weather_code,
     isDay: Boolean(current.is_day),
+    timezone: timezone || "Asia/Seoul",
+    currentTime,
   };
 }
 
@@ -397,7 +444,9 @@ function buildRecommendationPayload() {
     temperature: state.weather.temperature,
     user_mood: state.userContext.mood,
     user_text: "",
-    current_time: new Date().toISOString(),
+    current_time: state.weather.currentTime?.date
+      ? `${state.weather.currentTime.date}T${state.weather.currentTime.label}:00`
+      : new Date().toISOString(),
     top_k: 5,
   };
 }
@@ -786,7 +835,7 @@ function renderWeather() {
   elements.weatherStatus.textContent = state.weather.locationLabel;
   elements.weatherSummary.innerHTML = `
     <p class="weather-title">${state.weather.summary}</p>
-    <p class="weather-subtitle">현재 시간 ${timeLabel} · 날씨 해석 태그 ${weatherMood} · 사용자 감정 ${state.userContext.mood}</p>
+    <p class="weather-subtitle">현지 시간 ${timeLabel} · ${state.weather.timezone || "Asia/Seoul"} · 날씨 해석 태그 ${weatherMood} · 사용자 감정 ${state.userContext.mood}</p>
   `;
 
   elements.weatherTags.innerHTML = "";
@@ -866,9 +915,10 @@ async function fetchWeatherByCoordinates(latitude, longitude, label) {
   const url = new URL("https://api.open-meteo.com/v1/forecast");
   url.searchParams.set("latitude", String(latitude));
   url.searchParams.set("longitude", String(longitude));
+  url.searchParams.set("timezone", "auto");
   url.searchParams.set(
     "current",
-    "temperature_2m,weather_code,wind_speed_10m,is_day"
+    "time,temperature_2m,weather_code,wind_speed_10m,is_day"
   );
 
   const response = await fetch(url);
@@ -877,7 +927,7 @@ async function fetchWeatherByCoordinates(latitude, longitude, label) {
   }
 
   const data = await response.json();
-  state.weather = toWeatherState(label, data.current);
+  state.weather = toWeatherState(label, data.current, data.timezone);
   renderAll();
   refreshRecommendations();
 }
@@ -910,6 +960,8 @@ function setFallbackWeather() {
     temperature: 15,
     code: 3,
     isDay: true,
+    timezone: "Asia/Seoul",
+    currentTime: toLocalTimeState(null, "Asia/Seoul"),
   };
   renderAll();
   refreshRecommendations();
@@ -957,6 +1009,8 @@ function bindEvents() {
         temperature: null,
         code: null,
         isDay: true,
+        timezone: "Asia/Seoul",
+        currentTime: toLocalTimeState(null, "Asia/Seoul"),
       };
       renderAll();
       refreshRecommendations();

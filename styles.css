@@ -28,15 +28,16 @@ body {
 }
 
 .page-shell {
-  width: min(1180px, calc(100% - 32px));
+  width: min(560px, calc(100% - 24px));
   margin: 0 auto;
-  padding: 28px 0 56px;
+  padding: 18px 0 36px;
+  min-height: 100vh;
 }
 
 .hero {
-  padding: 48px;
+  padding: 28px 22px;
   border: 1px solid var(--line);
-  border-radius: 36px;
+  border-radius: 28px;
   background:
     radial-gradient(circle at top left, rgba(255, 61, 49, 0.2), transparent 30%),
     linear-gradient(145deg, rgba(20, 20, 24, 0.98), rgba(11, 11, 14, 0.96));
@@ -62,30 +63,31 @@ body {
 }
 
 .hero h1 {
-  max-width: 12ch;
-  font-size: clamp(2.6rem, 4vw, 4.8rem);
-  line-height: 0.98;
+  max-width: 10ch;
+  font-size: clamp(2.2rem, 6vw, 3.6rem);
+  line-height: 1.02;
 }
 
 .hero-copy {
-  max-width: 60ch;
-  margin: 20px 0 0;
+  max-width: 34ch;
+  margin: 16px 0 0;
   color: var(--muted);
-  font-size: 1.05rem;
-  line-height: 1.7;
+  font-size: 0.98rem;
+  line-height: 1.65;
 }
 
 .hero-actions {
   display: flex;
-  gap: 14px;
-  flex-wrap: wrap;
-  margin-top: 28px;
+  gap: 10px;
+  flex-direction: column;
+  margin-top: 22px;
 }
 
 .city-form {
   display: flex;
-  flex: 1 1 320px;
-  gap: 12px;
+  flex-direction: column;
+  flex: 1 1 auto;
+  gap: 10px;
 }
 
 button,
@@ -107,7 +109,8 @@ button:hover {
 
 .primary-button,
 .ghost-button {
-  padding: 14px 20px;
+  width: 100%;
+  padding: 14px 18px;
 }
 
 .primary-button {
@@ -138,8 +141,8 @@ textarea::placeholder {
 
 .layout {
   display: grid;
-  gap: 18px;
-  margin-top: 20px;
+  gap: 14px;
+  margin-top: 16px;
 }
 
 .panel {
@@ -148,7 +151,7 @@ textarea::placeholder {
   background: var(--panel);
   backdrop-filter: blur(10px);
   box-shadow: var(--shadow);
-  padding: 28px;
+  padding: 20px 18px;
 }
 
 .panel-heading {
@@ -259,8 +262,8 @@ textarea::placeholder {
 
 .recommendation-card {
   display: grid;
-  grid-template-columns: 140px 1fr;
-  gap: 16px;
+  grid-template-columns: 92px 1fr;
+  gap: 14px;
 }
 
 .recommendation-side {
@@ -270,9 +273,9 @@ textarea::placeholder {
 }
 
 .recommendation-rank {
-  width: 70px;
-  height: 70px;
-  border-radius: 22px;
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
   display: grid;
   place-items: center;
   background: linear-gradient(160deg, rgba(255, 61, 49, 0.16), rgba(255, 61, 49, 0.34));
@@ -313,6 +316,10 @@ textarea::placeholder {
   align-items: flex-start;
 }
 
+.recommendation-topline h3 {
+  font-size: 1.15rem;
+}
+
 .meta,
 .reason,
 .lyrics-summary,
@@ -340,6 +347,8 @@ textarea::placeholder {
 }
 
 .music-link {
+  width: 100%;
+  justify-content: center;
   padding: 10px 14px;
   background: rgba(255, 61, 49, 0.14);
   border: 1px solid rgba(255, 61, 49, 0.25);
@@ -381,35 +390,56 @@ textarea::placeholder {
   line-height: 1.6;
 }
 
-@media (max-width: 760px) {
+@media (min-width: 761px) {
   .page-shell {
-    width: min(100% - 20px, 1180px);
-    padding-top: 14px;
+    width: min(680px, calc(100% - 40px));
+    padding-top: 28px;
   }
 
   .hero,
   .panel {
-    padding: 22px;
+    padding: 28px;
   }
 
   .hero h1 {
-    max-width: none;
-    font-size: 2.5rem;
+    max-width: 12ch;
+    font-size: 3.4rem;
   }
 
-  .city-form,
-  .hero-actions,
-  .recommendation-card {
-    grid-template-columns: 1fr;
-    flex-direction: column;
-  }
-
-  .recommendation-side {
+  .hero-actions {
     flex-direction: row;
-    align-items: flex-start;
+    flex-wrap: wrap;
   }
 
-  .recommendation-side .artwork-frame {
-    width: 110px;
+  .city-form {
+    flex: 1 1 320px;
+    flex-direction: row;
+  }
+
+  .primary-button {
+    width: auto;
+  }
+
+  .ghost-button {
+    width: auto;
+    white-space: nowrap;
+  }
+
+  .recommendation-card {
+    grid-template-columns: 124px 1fr;
+  }
+
+  .recommendation-rank {
+    width: 70px;
+    height: 70px;
+    border-radius: 22px;
+  }
+
+  .recommendation-topline h3 {
+    font-size: 1.35rem;
+  }
+
+  .music-link {
+    width: auto;
   }
 }
