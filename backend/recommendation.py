@@ -146,10 +146,10 @@ class RecommendationService:
 
     def _build_reason(self, song: SongRecord, user_mood: str, weather_context, breakdown: ScoreBreakdown) -> str:
         return (
-            f"This song fits today's {weather_context.weather} weather and {weather_context.time_bucket} mood. "
-            f"The lyrics center on {', '.join(song.lyrics_themes)}, which aligns with the user's {user_mood} emotion. "
-            f"Score mix: weather {breakdown.weather_score}, mood {breakdown.mood_score}, "
-            f"time {breakdown.time_score}, lyrics {breakdown.lyrics_similarity}."
+            f"오늘의 {weather_context.weather} 날씨와 {weather_context.time_bucket} 시간대에 잘 어울리는 곡입니다. "
+            f"가사 핵심 테마는 {', '.join(song.lyrics_themes)}이며, 사용자의 {user_mood} 감정 입력과 자연스럽게 연결됩니다. "
+            f"점수 구성은 weather {breakdown.weather_score}, mood {breakdown.mood_score}, "
+            f"time {breakdown.time_score}, lyrics {breakdown.lyrics_similarity}입니다."
         )
 
     def _tokenize(self, text: str) -> set[str]:

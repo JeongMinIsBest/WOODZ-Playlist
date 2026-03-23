@@ -136,7 +136,7 @@ function deriveSentimentScore(song) {
 
 function deriveLyricsSummary(song) {
   const themes = deriveLyricsThemes(song);
-  return `${song.title} is centered on ${themes.join(", ")}, with a ${song.moods[0] || "moody"} tone that fits ${song.settings[0] || "the moment"}.`;
+  return `${song.title}는 ${themes.join(", ")}의 정서를 중심에 두고 있으며, ${song.moods[0] || "감성적"} 무드로 ${song.settings[0] || "지금 이 순간"}에 어울리는 곡입니다.`;
 }
 
 function enrichSong(song) {
@@ -607,6 +607,26 @@ const MANUAL_ARTWORK_HINTS = {
   amnesia: ["AMNESIA WOODZ"],
 };
 
+const RELEASE_ARTWORK_SEARCH_TERMS = {
+  equal: ["EQUAL WOODZ", "Equal 조승연"],
+  "only lovers left": ["ONLY LOVERS LEFT WOODZ", "Only Lovers Left 조승연"],
+  "oo-li": ["OO-LI WOODZ", "Oo-Li 조승연"],
+  "colorful trauma": ["COLORFUL TRAUMA WOODZ", "Colorful Trauma 조승연"],
+  set: ["SET WOODZ", "SET 조승연"],
+  different: ["DIFFERENT WOODZ", "Different 조승연"],
+  meaningless: ["meaningless WOODZ", "meaningless 조승연"],
+};
+
+const RELEASE_ALIASES = {
+  equal: ["equal"],
+  "only lovers left": ["only lovers left"],
+  "oo-li": ["ooli", "oo-li", "ooli", "ooli", "ooli"],
+  "colorful trauma": ["colorful trauma"],
+  set: ["set"],
+  different: ["different"],
+  meaningless: ["meaningless"],
+};
+
 function buildArtworkLookupUrl(term, entity = "song", limit = 10) {
   const url = new URL("https://itunes.apple.com/search");
   url.searchParams.set("term", term);
@@ -617,6 +637,23 @@ function buildArtworkLookupUrl(term, entity = "song", limit = 10) {
   return url.toString();
 }
 
+function hasExpectedArtist(result) {
+  const artist = normalizeText(result.artistName);
+  return (
+    artist.includes("woodz") ||
+    artist.includes("조승연") ||
+    artist.includes("choseungyoun") ||
+    artist.includes("cho승연")
+  );
+}
+
+function releaseAliasMatches(song, result) {
+  const release = normalizeText(song.primaryRelease);
+  const collection = normalizeText(result.collectionName);
+  const aliases = RELEASE_ALIASES[release] || [release];
+  return aliases.some((alias) => collection === alias || collection.includes(alias) || alias.includes(collection));
+}
+
 function scoreArtworkResult(song, result, preferAlbum = false) {
   const title = normalizeText(song.title);
   const release = normalizeText(song.primaryRelease);
@@ -625,12 +662,16 @@ function scoreArtworkResult(song, result, preferAlbum = false) {
   const artistName = normalizeText(result.artistName);
 
   let score = 0;
+  if (!hasExpectedArtist(result)) {
+    return -100;
+  }
   if (trackName === title) score += 7;
   if (trackName.includes(title) || title.includes(trackName)) score += 3;
   if (collectionName === release) score += 5;
   if (collectionName.includes(release) || release.includes(collectionName)) score += 2;
   if (artistName.includes("woodz")) score += 5;
   if (artistName.includes("조승연") || artistName.includes("choseungyoun")) score += 4;
+  if (releaseAliasMatches(song, result)) score += 5;
   if (preferAlbum && collectionName === release) score += 4;
   if (result.wrapperType === "collection") score += 2;
   return score;
@@ -645,7 +686,7 @@ function selectArtwork(song, results, preferAlbum = false) {
     .map((result) => ({ result, score: scoreArtworkResult(song, result, preferAlbum) }))
     .sort((left, right) => right.score - left.score)[0];
 
-  if (!best || best.score < 5 || !best.result.artworkUrl100) {
+  if (!best || best.score < 10 || !best.result.artworkUrl100) {
     return null;
   }
 
@@ -705,7 +746,9 @@ async function resolveAlbumArtwork(song) {
   }
 
   const request = (async () => {
+    const releaseKey = normalizeText(song.primaryRelease);
     const albumTerms = [
+      ...(RELEASE_ARTWORK_SEARCH_TERMS[releaseKey] || []),
       `${song.primaryRelease} WOODZ`,
       `${song.primaryRelease} 조승연`,
       song.primaryRelease,
