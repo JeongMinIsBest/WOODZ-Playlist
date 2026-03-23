@@ -1,4 +1,4 @@
-import { CATEGORY_OPTIONS, SONG_CATALOG } from "./catalog.js";
+import { SONG_CATALOG } from "./catalog.js";
 
 const USER_MOOD_OPTIONS = ["calm", "sad", "excited", "nostalgic", "lonely"];
 const API_BASE_CANDIDATES = [
@@ -38,12 +38,9 @@ const state = {
   },
   filters: {
     search: "",
-    category: "all",
-    energy: "all",
   },
   userContext: {
     mood: "nostalgic",
-    prompt: "",
   },
   recommendationFeed: {
     source: "local",
@@ -69,18 +66,10 @@ const elements = {
   weatherStatus: document.querySelector("#weather-status"),
   weatherSummary: document.querySelector("#weather-summary"),
   weatherTags: document.querySelector("#weather-tags"),
-  categorySelect: document.querySelector("#category-select"),
-  energySelect: document.querySelector("#energy-select"),
-  searchInput: document.querySelector("#search-input"),
-  promptInput: document.querySelector("#prompt-input"),
   moodButtons: [...document.querySelectorAll(".mood-button")],
   recommendationCount: document.querySelector("#recommendation-count"),
   recommendationInsight: document.querySelector("#recommendation-insight"),
   recommendations: document.querySelector("#recommendations"),
-  playlistCount: document.querySelector("#playlist-count"),
-  playlist: document.querySelector("#playlist"),
-  catalogCount: document.querySelector("#catalog-count"),
-  catalog: document.querySelector("#catalog"),
 };
 
 function songLookupKey(value) {
@@ -345,9 +334,6 @@ function buildRecommendationReason(song, context, components) {
   const lines = [];
   lines.push(`오늘의 ${context.weatherLabel} 날씨와 ${context.timeLabel} 분위기에 ${song.title}의 정서가 잘 맞습니다.`);
   lines.push(`가사 핵심 테마는 ${song.lyricsThemes.join(", ")}이며, ${state.userContext.mood} 감정 입력과 연결됩니다.`);
-  if (state.userContext.prompt) {
-    lines.push(`입력한 문장과 가장 가깝게 닿는 키워드는 ${song.lyricsThemes.slice(0, 2).join(", ")}입니다.`);
-  }
   lines.push(
     `점수 구성: weather ${components.weatherScore}, mood ${components.moodScore}, time ${components.timeScore}, lyrics ${components.lyricsSimilarity}`
   );
@@ -355,36 +341,6 @@ function buildRecommendationReason(song, context, components) {
 }
 
 function applyFilters(song) {
-  const normalizedQuery = state.filters.search.trim().toLowerCase();
-  if (normalizedQuery) {
-    const haystack = [
-      song.title,
-      song.primaryRelease,
-      ...song.releaseHistory,
-      song.primaryCategory,
-      ...song.categories,
-      ...song.emotionTags,
-      ...song.lyricsThemes,
-      ...song.moods,
-      ...song.weatherTags,
-      ...song.settings,
-    ]
-      .join(" ")
-      .toLowerCase();
-
-    if (!haystack.includes(normalizedQuery)) {
-      return false;
-    }
-  }
-
-  if (state.filters.category !== "all" && song.primaryCategory !== state.filters.category) {
-    return false;
-  }
-
-  if (state.filters.energy !== "all" && energyBucket(song.energy) !== state.filters.energy) {
-    return false;
-  }
-
   return true;
 }
 
@@ -396,7 +352,7 @@ function recommendSongs() {
     timeBucket: getCurrentTimeBucket(),
     timeLabel: getCurrentTimeLabel(),
     userMood: state.userContext.mood,
-    promptTokens: tokenizePrompt(state.userContext.prompt),
+    promptTokens: [],
   };
 
   return ENRICHED_SONGS.filter(applyFilters)
@@ -440,9 +396,9 @@ function buildRecommendationPayload() {
     weather: deriveBackendWeatherName(state.weather.tags),
     temperature: state.weather.temperature,
     user_mood: state.userContext.mood,
-    user_text: state.userContext.prompt,
+    user_text: "",
     current_time: new Date().toISOString(),
-    top_k: 8,
+    top_k: 5,
   };
 }
 
@@ -517,7 +473,6 @@ async function refreshRecommendations() {
   const requestId = ++state.api.requestId;
   state.recommendationFeed.pending = true;
   renderRecommendations();
-  renderPlaylist();
 
   const baseUrl = await detectBackendBase();
   if (!baseUrl) {
@@ -529,7 +484,6 @@ async function refreshRecommendations() {
       error: "백엔드 API를 찾지 못해 로컬 추천 엔진으로 표시 중입니다.",
     };
     renderRecommendations();
-    renderPlaylist();
     return;
   }
 
@@ -566,7 +520,6 @@ async function refreshRecommendations() {
       })),
     };
     renderRecommendations();
-    renderPlaylist();
   } catch (_error) {
     if (requestId !== state.api.requestId) return;
     state.recommendationFeed = {
@@ -576,7 +529,6 @@ async function refreshRecommendations() {
       error: "백엔드 호출에 실패해 로컬 추천 결과를 보여주고 있습니다.",
     };
     renderRecommendations();
-    renderPlaylist();
   }
 }
 
@@ -844,13 +796,13 @@ function renderWeather() {
 }
 
 function renderRecommendations() {
-  const recommendations = getActiveRecommendations().slice(0, 8);
+  const recommendations = getActiveRecommendations().slice(0, 5);
   prefetchArtwork(recommendations.map(({ song }) => song));
   elements.recommendationCount.textContent = `${recommendations.length}곡`;
   elements.recommendationInsight.innerHTML = recommendations[0]
     ? `
       <p class="insight-title">오늘의 해석</p>
-      <p class="insight-copy">${recommendations[0].song.title}가 가장 높은 점수를 받은 이유는 현재 날씨, 시간대, 감정 입력, 가사 의미가 동시에 맞아떨어졌기 때문입니다. 현재 추천 소스는 ${state.recommendationFeed.source === "backend" ? "FastAPI backend" : "local fallback"}입니다.</p>
+      <p class="insight-copy">${recommendations[0].song.title}가 가장 높은 점수를 받은 이유는 현재 날씨와 시간대, 그리고 지금 고른 무드가 가장 자연스럽게 연결되기 때문입니다. 현재 추천 소스는 ${state.recommendationFeed.source === "backend" ? "FastAPI backend" : "local fallback"}입니다.</p>
       ${state.recommendationFeed.error ? `<p class="insight-copy">${state.recommendationFeed.error}</p>` : ""}
     `
     : "";
@@ -886,7 +838,7 @@ function renderRecommendations() {
           <h3>${song.title}</h3>
           <span class="score-badge">${score.toFixed(2)}</span>
         </div>
-        <p class="meta">${song.primaryRelease} · ${song.year || "-"} · ${song.primaryCategory || "backend-result"}</p>
+        <p class="meta">${song.primaryRelease} · ${song.year || "-"}</p>
         <div class="chip-row">
           ${(song.emotionTags || []).map((mood) => `<span class="chip">${mood}</span>`).join("")}
         </div>
@@ -905,80 +857,9 @@ function renderRecommendations() {
   });
 }
 
-function renderPlaylist() {
-  const playlist = getActiveRecommendations().slice(0, 5);
-  elements.playlistCount.textContent = `${playlist.length}곡`;
-  elements.playlist.innerHTML = "";
-
-  if (state.recommendationFeed.pending) {
-    const pending = document.createElement("div");
-    pending.className = "empty-state";
-    pending.textContent = "플레이리스트를 생성하는 중입니다.";
-    elements.playlist.appendChild(pending);
-    return;
-  }
-
-  playlist.forEach(({ song, reason }, index) => {
-    const item = document.createElement("article");
-    item.className = "playlist-item";
-    item.innerHTML = `
-      <div class="playlist-number">${index + 1}</div>
-      <div class="playlist-body">
-        <h3>${song.title}</h3>
-        <p>${song.primaryRelease} · ${(song.emotionTags || []).join(", ")}</p>
-        <p class="playlist-reason">${reason}</p>
-      </div>
-    `;
-    elements.playlist.appendChild(item);
-  });
-}
-
-function renderCatalog() {
-  const filtered = ENRICHED_SONGS.filter(applyFilters);
-  prefetchArtwork(filtered.slice(0, 24));
-  elements.catalogCount.textContent = `${filtered.length}곡`;
-  elements.catalog.innerHTML = "";
-
-  filtered.forEach((song) => {
-    const youtubeMusicUrl = buildYoutubeMusicUrl(song);
-    const card = document.createElement("article");
-    card.className = "catalog-card";
-    card.innerHTML = `
-      ${renderArtwork(song)}
-      <div class="catalog-header">
-        <div>
-          <h3>${song.title}</h3>
-          <p>${song.primaryRelease} · ${song.releaseType} · ${song.year}</p>
-        </div>
-        <span class="energy-badge">energy ${song.energy}</span>
-      </div>
-      <p class="catalog-category">${song.primaryCategory}</p>
-      <div class="chip-row">
-        ${song.categories.map((category) => `<span class="chip">${category}</span>`).join("")}
-      </div>
-      <div class="chip-row">
-        ${song.emotionTags.map((mood) => `<span class="chip chip-muted">${mood}</span>`).join("")}
-      </div>
-      <div class="chip-row">
-        ${song.weatherTags.map((tag) => `<span class="chip chip-accent">${tag}</span>`).join("")}
-      </div>
-      <p class="lyrics-summary">${song.lyricsSummary}</p>
-      <div class="chip-row">
-        ${song.lyricsThemes.map((theme) => `<span class="chip chip-muted">${theme}</span>`).join("")}
-      </div>
-      <div class="action-row">
-        <a class="music-link" href="${youtubeMusicUrl}" target="_blank" rel="noreferrer">YouTube Music 검색 열기</a>
-      </div>
-    `;
-    elements.catalog.appendChild(card);
-  });
-}
-
 function renderAll() {
   renderWeather();
   renderRecommendations();
-  renderPlaylist();
-  renderCatalog();
 }
 
 async function fetchWeatherByCoordinates(latitude, longitude, label) {
@@ -1082,22 +963,6 @@ function bindEvents() {
     }
   });
 
-  elements.searchInput.addEventListener("input", (event) => {
-    state.filters.search = event.target.value;
-    renderAll();
-  });
-
-  elements.promptInput.addEventListener("input", (event) => {
-    state.userContext.prompt = event.target.value;
-    renderAll();
-    refreshRecommendations();
-  });
-
-  elements.categorySelect.addEventListener("change", (event) => {
-    state.filters.category = event.target.value;
-    renderAll();
-  });
-
   elements.moodButtons.forEach((button) => {
     button.addEventListener("click", () => {
       state.userContext.mood = button.dataset.mood;
@@ -1106,15 +971,9 @@ function bindEvents() {
       refreshRecommendations();
     });
   });
-
-  elements.energySelect.addEventListener("change", (event) => {
-    state.filters.energy = event.target.value;
-    renderAll();
-  });
 }
 
 function initialize() {
-  populateSelect(elements.categorySelect, CATEGORY_OPTIONS, "카테고리");
   elements.moodButtons.forEach((button) => {
     button.classList.toggle("is-active", button.dataset.mood === state.userContext.mood);
   });

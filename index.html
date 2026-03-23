@@ -39,8 +39,8 @@
         <section class="panel weather-panel">
           <div class="panel-heading">
             <div>
-              <p class="panel-label">Today</p>
-              <h2>현재 날씨</h2>
+              <p class="panel-label">Step 1</p>
+              <h2>지금 위치와 날씨</h2>
             </div>
             <span id="weather-status" class="status-pill">초기화 중</span>
           </div>
@@ -51,10 +51,11 @@
         <section class="panel filter-panel">
           <div class="panel-heading">
             <div>
-              <p class="panel-label">Filters</p>
-              <h2>감정과 해석 입력</h2>
+              <p class="panel-label">Step 2</p>
+              <h2>오늘의 무드</h2>
             </div>
           </div>
+          <p class="section-copy">지금 감정에 가장 가까운 무드를 하나 골라주세요.</p>
           <div class="mood-picker">
             <button class="mood-button" data-mood="calm" type="button">🙂 calm</button>
             <button class="mood-button" data-mood="sad" type="button">😔 sad</button>
@@ -62,67 +63,18 @@
             <button class="mood-button" data-mood="nostalgic" type="button">💭 nostalgic</button>
             <button class="mood-button" data-mood="lonely" type="button">🌙 lonely</button>
           </div>
-          <label class="prompt-field">
-            <span>지금 상태를 자연어로 적어주세요</span>
-            <textarea
-              id="prompt-input"
-              rows="3"
-              placeholder="예: 비 오는 밤이라 조금 공허하고 기다리는 마음이 들어요."
-            ></textarea>
-          </label>
-          <div class="filters">
-            <label>
-              <span>곡 검색</span>
-              <input id="search-input" type="text" placeholder="곡명, 릴리즈명, 태그" />
-            </label>
-            <label>
-              <span>대표 카테고리</span>
-              <select id="category-select"></select>
-            </label>
-            <label>
-              <span>에너지</span>
-              <select id="energy-select">
-                <option value="all">전체</option>
-                <option value="low">잔잔함</option>
-                <option value="mid">중간</option>
-                <option value="high">강함</option>
-              </select>
-            </label>
-          </div>
         </section>
 
         <section class="panel recommendation-panel">
           <div class="panel-heading">
             <div>
-              <p class="panel-label">Playlist</p>
-              <h2>오늘의 추천</h2>
+              <p class="panel-label">Step 3</p>
+              <h2>추천된 WOODZ 노래</h2>
             </div>
-            <span id="recommendation-count" class="status-pill">0곡</span>
+            <span id="recommendation-count" class="status-pill">최대 5곡</span>
           </div>
           <div id="recommendation-insight" class="insight-box"></div>
           <div id="recommendations" class="recommendation-list"></div>
-        </section>
-
-        <section class="panel playlist-panel">
-          <div class="panel-heading">
-            <div>
-              <p class="panel-label">Playlist</p>
-              <h2>Today's WOODZ Playlist</h2>
-            </div>
-            <span id="playlist-count" class="status-pill">0곡</span>
-          </div>
-          <div id="playlist" class="playlist-list"></div>
-        </section>
-
-        <section class="panel catalog-panel">
-          <div class="panel-heading">
-            <div>
-              <p class="panel-label">Catalog</p>
-              <h2>WOODZ 전체 곡 카탈로그</h2>
-            </div>
-            <span id="catalog-count" class="status-pill">0곡</span>
-          </div>
-          <div id="catalog" class="catalog-grid"></div>
         </section>
       </main>
     </div>
