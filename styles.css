@@ -34,6 +34,10 @@ body {
   min-height: 100vh;
 }
 
+.hidden {
+  display: none !important;
+}
+
 .hero {
   padding: 28px 22px;
   border: 1px solid var(--line);
@@ -42,6 +46,13 @@ body {
     radial-gradient(circle at top left, rgba(255, 61, 49, 0.2), transparent 30%),
     linear-gradient(145deg, rgba(20, 20, 24, 0.98), rgba(11, 11, 14, 0.96));
   box-shadow: var(--shadow);
+}
+
+.intro-screen {
+  min-height: calc(100vh - 54px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .eyebrow,
@@ -81,6 +92,10 @@ body {
   gap: 10px;
   flex-direction: column;
   margin-top: 22px;
+}
+
+.step-actions {
+  margin-top: 18px;
 }
 
 .city-form {
@@ -143,6 +158,32 @@ textarea::placeholder {
   display: grid;
   gap: 14px;
   margin-top: 16px;
+}
+
+.wizard-progress {
+  display: flex;
+  gap: 8px;
+}
+
+.progress-chip {
+  flex: 1 1 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--muted);
+  font-size: 0.84rem;
+  text-align: center;
+}
+
+.progress-chip.is-active {
+  background: rgba(255, 61, 49, 0.16);
+  border-color: rgba(255, 61, 49, 0.3);
+  color: #ffd2ce;
+}
+
+.progress-chip.is-complete {
+  color: #ffb0aa;
 }
 
 .panel {
@@ -234,6 +275,7 @@ textarea::placeholder {
 }
 
 .mood-button {
+  flex: 1 1 calc(50% - 10px);
   padding: 11px 16px;
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.045);
@@ -390,6 +432,12 @@ textarea::placeholder {
   line-height: 1.6;
 }
 
+.step-nav {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
 @media (min-width: 761px) {
   .page-shell {
     width: min(680px, calc(100% - 40px));
@@ -399,6 +447,10 @@ textarea::placeholder {
   .hero,
   .panel {
     padding: 28px;
+  }
+
+  .intro-screen {
+    min-height: auto;
   }
 
   .hero h1 {

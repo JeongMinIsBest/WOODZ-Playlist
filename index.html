@@ -13,7 +13,7 @@
   </head>
   <body>
     <div class="page-shell">
-      <header class="hero">
+      <header id="intro-screen" class="hero intro-screen">
         <p class="eyebrow">WEATHER X WOODZ</p>
         <h1>오늘 날씨에 어울리는 WOODZ 플레이리스트</h1>
         <p class="hero-copy">
@@ -21,38 +21,48 @@
           지금 날씨에 가장 잘 맞는 곡을 추천합니다.
         </p>
         <div class="hero-actions">
-          <button id="use-location" class="primary-button">내 위치로 날씨 가져오기</button>
-          <form id="city-form" class="city-form">
-            <input
-              id="city-input"
-              name="city"
-              type="text"
-              placeholder="도시 입력 예: Seoul, Tokyo, Paris"
-              autocomplete="off"
-            />
-            <button type="submit" class="ghost-button">도시 검색</button>
-          </form>
+          <button id="start-button" class="primary-button">시작하기</button>
         </div>
       </header>
 
-      <main class="layout">
-        <section class="panel weather-panel">
+      <main id="wizard" class="layout wizard hidden">
+        <div class="wizard-progress">
+          <span class="progress-chip is-active">1 위치</span>
+          <span class="progress-chip">2 기분</span>
+          <span class="progress-chip">3 추천</span>
+        </div>
+
+        <section id="location-step" class="panel weather-panel">
           <div class="panel-heading">
             <div>
               <p class="panel-label">Step 1</p>
-              <h2>지금 위치와 날씨</h2>
+              <h2>현재 위치는 어디인가요?</h2>
             </div>
-            <span id="weather-status" class="status-pill">초기화 중</span>
+            <span id="weather-status" class="status-pill">입력 대기 중</span>
+          </div>
+          <p class="section-copy">현재 위치를 기반으로 날씨와 현지 시간을 가져와 추천에 반영합니다.</p>
+          <div class="hero-actions step-actions">
+            <button id="use-location" class="primary-button">내 위치 자동으로 가져오기</button>
+            <form id="city-form" class="city-form">
+              <input
+                id="city-input"
+                name="city"
+                type="text"
+                placeholder="도시 입력 예: Seoul, Tokyo, Paris"
+                autocomplete="off"
+              />
+              <button type="submit" class="ghost-button">이 도시로 계속하기</button>
+            </form>
           </div>
           <div id="weather-summary" class="weather-summary"></div>
           <div id="weather-tags" class="chip-row"></div>
         </section>
 
-        <section class="panel filter-panel">
+        <section id="mood-step" class="panel filter-panel hidden">
           <div class="panel-heading">
             <div>
               <p class="panel-label">Step 2</p>
-              <h2>오늘의 무드</h2>
+              <h2>오늘의 기분은 어떤가요?</h2>
             </div>
           </div>
           <p class="section-copy">지금 감정에 가장 가까운 무드를 하나 골라주세요.</p>
@@ -63,9 +73,12 @@
             <button class="mood-button" data-mood="nostalgic" type="button">💭 nostalgic</button>
             <button class="mood-button" data-mood="lonely" type="button">🌙 lonely</button>
           </div>
+          <div class="step-nav">
+            <button id="back-to-location" class="ghost-button" type="button">이전으로</button>
+          </div>
         </section>
 
-        <section class="panel recommendation-panel">
+        <section id="result-step" class="panel recommendation-panel hidden">
           <div class="panel-heading">
             <div>
               <p class="panel-label">Step 3</p>
@@ -75,6 +88,9 @@
           </div>
           <div id="recommendation-insight" class="insight-box"></div>
           <div id="recommendations" class="recommendation-list"></div>
+          <div class="step-nav">
+            <button id="restart-button" class="ghost-button" type="button">처음부터 다시</button>
+          </div>
         </section>
       </main>
     </div>

@@ -28,6 +28,7 @@ const LYRICS_THEME_HINTS = {
 };
 
 const state = {
+  currentStep: 0,
   weather: {
     locationLabel: "위치 확인 중",
     summary: "브라우저 위치 권한을 허용하거나 도시를 검색해 주세요.",
@@ -62,6 +63,13 @@ const state = {
 };
 
 const elements = {
+  introScreen: document.querySelector("#intro-screen"),
+  wizard: document.querySelector("#wizard"),
+  progressChips: [...document.querySelectorAll(".progress-chip")],
+  startButton: document.querySelector("#start-button"),
+  locationStep: document.querySelector("#location-step"),
+  moodStep: document.querySelector("#mood-step"),
+  resultStep: document.querySelector("#result-step"),
   useLocationButton: document.querySelector("#use-location"),
   cityForm: document.querySelector("#city-form"),
   cityInput: document.querySelector("#city-input"),
@@ -69,6 +77,8 @@ const elements = {
   weatherSummary: document.querySelector("#weather-summary"),
   weatherTags: document.querySelector("#weather-tags"),
   moodButtons: [...document.querySelectorAll(".mood-button")],
+  backToLocationButton: document.querySelector("#back-to-location"),
+  restartButton: document.querySelector("#restart-button"),
   recommendationCount: document.querySelector("#recommendation-count"),
   recommendationInsight: document.querySelector("#recommendation-insight"),
   recommendations: document.querySelector("#recommendations"),
@@ -385,6 +395,20 @@ function buildRecommendationReason(song, context, components) {
     `점수 구성: weather ${components.weatherScore}, mood ${components.moodScore}, time ${components.timeScore}, lyrics ${components.lyricsSimilarity}`
   );
   return lines.join(" ");
+}
+
+function showStep(step) {
+  state.currentStep = step;
+  elements.introScreen.classList.toggle("hidden", step !== 0);
+  elements.wizard.classList.toggle("hidden", step === 0);
+  elements.locationStep.classList.toggle("hidden", step !== 1);
+  elements.moodStep.classList.toggle("hidden", step !== 2);
+  elements.resultStep.classList.toggle("hidden", step !== 3);
+
+  elements.progressChips.forEach((chip, index) => {
+    chip.classList.toggle("is-active", index + 1 === step);
+    chip.classList.toggle("is-complete", index + 1 < step);
+  });
 }
 
 function applyFilters(song) {
@@ -929,7 +953,9 @@ async function fetchWeatherByCoordinates(latitude, longitude, label) {
   const data = await response.json();
   state.weather = toWeatherState(label, data.current, data.timezone);
   renderAll();
-  refreshRecommendations();
+  if (state.currentStep >= 3) {
+    refreshRecommendations();
+  }
 }
 
 async function fetchWeatherByCity(city) {
@@ -964,13 +990,20 @@ function setFallbackWeather() {
     currentTime: toLocalTimeState(null, "Asia/Seoul"),
   };
   renderAll();
-  refreshRecommendations();
+  if (state.currentStep >= 3) {
+    refreshRecommendations();
+  }
 }
 
 function bindEvents() {
+  elements.startButton.addEventListener("click", () => {
+    showStep(1);
+  });
+
   elements.useLocationButton.addEventListener("click", () => {
     if (!navigator.geolocation) {
       setFallbackWeather();
+      showStep(2);
       return;
     }
 
@@ -982,12 +1015,15 @@ function bindEvents() {
             coords.longitude,
             "현재 위치"
           );
+          showStep(2);
         } catch (error) {
           setFallbackWeather();
+          showStep(2);
         }
       },
       () => {
         setFallbackWeather();
+        showStep(2);
       }
     );
   });
@@ -1001,6 +1037,7 @@ function bindEvents() {
 
     try {
       await fetchWeatherByCity(city);
+      showStep(2);
     } catch (error) {
       state.weather = {
         locationLabel: city,
@@ -1013,7 +1050,7 @@ function bindEvents() {
         currentTime: toLocalTimeState(null, "Asia/Seoul"),
       };
       renderAll();
-      refreshRecommendations();
+      showStep(2);
     }
   });
 
@@ -1021,9 +1058,17 @@ function bindEvents() {
     button.addEventListener("click", () => {
       state.userContext.mood = button.dataset.mood;
       elements.moodButtons.forEach((item) => item.classList.toggle("is-active", item === button));
-      renderAll();
+      showStep(3);
       refreshRecommendations();
     });
+  });
+
+  elements.backToLocationButton.addEventListener("click", () => {
+    showStep(1);
+  });
+
+  elements.restartButton.addEventListener("click", () => {
+    showStep(0);
   });
 }
 
@@ -1033,7 +1078,7 @@ function initialize() {
   });
   bindEvents();
   setFallbackWeather();
-  refreshRecommendations();
+  showStep(0);
 }
 
 initialize();
