@@ -113,6 +113,41 @@ Railway 기준:
 - [Railway FastAPI Guide](https://docs.railway.com/guides/fastapi)
 - [Railway Build Configuration](https://docs.railway.com/reference/config-as-code)
 
+## Supabase Seeding
+
+로컬 카탈로그를 `Supabase`의 `songs` 테이블로 올리는 시드 스크립트도 추가했습니다.
+
+- [`backend/scripts/seed_songs.py`](/Users/jeongmin/Documents/Playground/backend/scripts/seed_songs.py#L1)
+- [`backend/scripts/embed_songs.py`](/Users/jeongmin/Documents/Playground/backend/scripts/embed_songs.py#L1)
+
+실행 예시:
+
+```bash
+python3 backend/scripts/seed_songs.py --dry-run
+python3 backend/scripts/seed_songs.py
+python3 backend/scripts/seed_songs.py --truncate
+```
+
+설명:
+
+- `--dry-run`: 실제 업로드 없이 전송될 데이터를 출력
+- 기본 실행: `LOCAL_SONG_CATALOG`를 `upsert`
+- `--truncate`: 기존 `songs` 테이블 데이터를 비우고 다시 채움
+
+임베딩 업로드 예시:
+
+```bash
+python3 backend/scripts/embed_songs.py --dry-run --limit 3
+python3 backend/scripts/embed_songs.py --only-missing
+python3 backend/scripts/embed_songs.py
+```
+
+설명:
+
+- `--dry-run`: 어떤 곡을 임베딩할지와 벡터 길이만 미리 확인
+- `--only-missing`: `embedding`이 비어 있는 행만 처리
+- 기본 실행: 모든 곡의 `embedding_text`를 OpenAI 임베딩으로 변환해 Supabase `embedding` 컬럼에 upsert
+
 ## 날씨 추천 방식
 
 앱은 Open-Meteo의 현재 날씨 정보를 가져와 다음 태그로 변환합니다.
