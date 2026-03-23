@@ -24,10 +24,13 @@ recommendation_service = RecommendationService(
 
 app = FastAPI(title="WOODZ Playlist API", version="0.1.0")
 
+allowed_origins = list(settings.allowed_origins)
+allow_all_origins = not allowed_origins or "*" in allowed_origins
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=list(settings.allowed_origins) or ["*"],
-    allow_credentials=True,
+    allow_origins=["*"] if allow_all_origins else allowed_origins,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

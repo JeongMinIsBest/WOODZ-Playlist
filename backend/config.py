@@ -20,10 +20,7 @@ class Settings:
 
 
 def get_settings() -> Settings:
-    origins = os.getenv(
-        "ALLOWED_ORIGINS",
-        "http://localhost:3000,http://127.0.0.1:3000,http://localhost:4173",
-    )
+    origins = os.getenv("ALLOWED_ORIGINS", "")
     return Settings(
         openai_api_key=os.getenv("OPENAI_API_KEY"),
         openai_embedding_model=os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small"),
